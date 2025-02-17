@@ -15,7 +15,8 @@ src/free_volume/__pycache__/
 src/log_analysis/__pycache__/
 src/log_analysis/modes/__pycache__/
 *.pyc
-
+TEST/
+EXAMPLES/
 # ignore automatic test outputs
 automatic_tests/outputs
 

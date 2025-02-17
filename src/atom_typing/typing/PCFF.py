@@ -134,6 +134,7 @@ def nta(mm, basename, ff_name):
         # Set intial .nta and .nta_comments and update later on if found
         atom.nta_type = '{}-type-yourself'.format(element)
         atom.nta_info = 'FAILED TO BE TYPED:  element: {}, ring: {}, nb: {}'.format(element, ring, nb)
+        # print("Si",element,elements1, elements2)
 
         
         
@@ -983,8 +984,8 @@ def nta(mm, basename, ff_name):
             # Strict IFF atom-typing that occurs after User defined atom-typing attempts #
             #----------------------------------------------------------------------------#
             # sio     28.08600     Si          4         siloxane silicon
-            if ring == 0 and 'O' in elements1 and 'Si' in elements2:          
-                atom.nta_type = 's_m'; tally['found'] += 1;
+            if 'O' in elements1:          
+                atom.nta_type = 'sio'; tally['found'] += 1;
                 atom.nta_info = 'Correctly found'
                 
             # si        28.08600     Si          4         silicon atom

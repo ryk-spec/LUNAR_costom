@@ -65,7 +65,8 @@ class PCFFSetup:
         }
         all2_lmp = {
             "-t": f"{os.path.splitext(os.path.abspath(pdb_name))[0]+"_typed.data"}",
-            "-n": f"{os.path.splitext(os.path.abspath(pdb_name))[0]+"_typed.nta"}"
+            "-n": f"{os.path.splitext(os.path.abspath(pdb_name))[0]+"_typed.nta"}",
+            "-frc": "frc_files/pcff.frc"
         }
         os.chdir("/home/ryo/projects/LUNAR")
         command = "python atom_typing.py "
@@ -94,6 +95,7 @@ class PCFFInput:
         commands.append(f"read_data {datafile}")
         commands.append("thermo_style custom step cpu cpuremain density etotal")
         commands.append("thermo          1000")
+        commands.append("fix del_linear all momentum 1 linear 1 1 1 angular")
         self.commands = commands
         self.datafile = datafile
         self.count = 0
@@ -101,24 +103,23 @@ class PCFFInput:
     def minimize(self,maxiter=10000):
         self.commands.append(f"minimize 1e-4 1e-6 {maxiter} 10000")
         self.commands.append(f"write_data {os.path.splitext(self.datafile)[0]}.0.data")
-        self.commands.append(f"velocity all create 300.0 12345 mom yes dist gaussian")
 
-    def nvt(self,temp=300,tstop=300,tdamp=20,run_ns=1,xtc=True):
+    def nvt(self,temp=300,tstop=300,tdamp=100,run_ns=1,xtc=True):
         self.count += 1
         self.commands.append(f"timestep 1.0")
         self.commands.append(f"fix {self.count} all nvt temp {temp} {tstop} {tdamp}")
         if xtc:
-            self.commands.append(f"dump xtc{self.count} all xtc 1000 {os.path.splitext(self.datafile)[0]}.{self.count}.xtc")
+            self.commands.append(f"dump xtc{self.count} all atom 1000 {os.path.splitext(self.datafile)[0]}.{self.count}.lmptrj")
         self.commands.append(f"run {int(run_ns*1e6)}")
         self.commands.append(f"write_data {os.path.splitext(self.datafile)[0]}.{self.count}.data")
         self.commands.append(f"unfix {self.count}")
 
-    def npt(self,temp=300,tstop=300,tdamp=20,p=1,pdamp=400,run_ns=1,xtc=True):
+    def npt(self,temp=300,tstop=300,tdamp=100,p=1,pdamp=1000,run_ns=1,xtc=True):
         self.count += 1
         self.commands.append(f"timestep 1.0")
-        self.commands.append(f"fix {self.count} all nvt temp {temp} {tstop} {tdamp} iso {p} {p} {pdamp}")
+        self.commands.append(f"fix {self.count} all npt temp {temp} {tstop} {tdamp} iso {p} {p} {pdamp}")
         if xtc:
-            self.commands.append(f"dump xtc{self.count} all xtc 1000 {os.path.splitext(self.datafile)[0]}.{self.count}.xtc")
+            self.commands.append(f"dump xtc{self.count} all atom 1000 {os.path.splitext(self.datafile)[0]}.{self.count}.lmptrj")
         self.commands.append(f"run {int(run_ns*1e6)}")
         self.commands.append(f"write_data {os.path.splitext(self.datafile)[0]}.{self.count}.data")
         self.commands.append(f"unfix {self.count}")
@@ -160,12 +161,11 @@ if __name__ == "__main__":
     wf = 5e-2
     N_solv = N_soln*soln.gram * (1-wf) / wf / solv.gram
     N_solv = int(N_solv) 
-    system = MoleculeSystem([soln,solv],molecule_num=[N_soln,N_solv],density=0.7,name="cODMS8_bulk")
-    PCFFSetup("../TEST/cODMS8_bulk.pdb")
-    pcff_input = PCFFInput("/home/ryo/projects/LUNAR/TEST/cODMS8_bulk_typed_IFF.data")
+    system = MoleculeSystem([soln,solv],molecule_num=[N_soln,N_solv],density=0.7,name=f"{soln.name}_{solv.name}_pcff")
+    PCFFSetup(f"../TEST/{soln.name}_{solv.name}_pcff.pdb")
+    pcff_input = PCFFInput(f"/home/ryo/projects/LUNAR/TEST/{soln.name}_{solv.name}_pcff_typed_IFF.data")
     pcff_input.minimize(maxiter=50000)
-    pcff_input.nvt(temp=10,tstop=10,tdamp=20,run_ns=0.1)
-    pcff_input.nvt(temp=300,tdamp=20,run_ns=1)
+    pcff_input.nvt(temp=300,tstop=300,run_ns=1)
     pcff_input.npt(run_ns=10,xtc=False)
     pcff_input.npt(run_ns=10,xtc=True)
     pcff_input.run()
